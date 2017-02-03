@@ -6,6 +6,7 @@ Created on Wed Feb  1 19:56:30 2017
 """
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 def meanSquareError(imagenOriginal,imagenRestaurada):
     M, N = imagenOriginal.shape[:2]
@@ -37,7 +38,13 @@ def noisy(image):
               for i in image.shape]
       out[coords] = 0
       return gaussian,out
-      
+   
+def histogramError(image,histogram,histogramEqualized):
+    M, N = image.shape[:2]
+    for x in range(256):
+        error = np.abs(histogram[x] - histogramEqualized[x])
+    return error/((M*N)*2)
+    
 img = cv2.imread('../images/prueba.jpg',0)
 img = cv2.resize(img,(600,500), interpolation = cv2.INTER_CUBIC)
 gaussian,salt = noisy(img)
@@ -49,7 +56,7 @@ gaussianblur3 = cv2.GaussianBlur(img,(7,7),0)
 median1 = cv2.medianBlur(salt,3)
 median2 = cv2.medianBlur(salt,5)
 median3 = cv2.medianBlur(salt,7)
-
+"""
 
 cv2.imshow("Original",img)
 cv2.imshow("salt and pepper",salt)
@@ -81,3 +88,27 @@ print('Error s&p 4:',meanSquareError(img,equ))
 print('Error gaussian 1:',meanSquareError(img,gaussianblur1))
 print('Error gaussian 2:',meanSquareError(img,gaussianblur2))
 print('Error gaussian 3:',meanSquareError(img,gaussianblur3))
+"""
+
+hist1,bins = np.histogram(img.flatten(),256,[0,256])
+cdf = hist1.cumsum()
+cdf_normalized = cdf * hist1.max()/ cdf.max()
+plt.plot(cdf_normalized, color = 'b')
+plt.hist(img.flatten(),256,[0,256], color = 'r')
+plt.xlim([0,256])
+plt.legend(('cdf','histogram'), loc = 'upper left')
+plt.title('Original gray image')
+plt.show()
+    
+equ = cv2.equalizeHist(img)
+hist,bins = np.histogram(equ.flatten(),256,[0,256])
+cdf = hist.cumsum()
+cdf_normalized = cdf * hist.max()/ cdf.max()
+plt.plot(cdf_normalized, color = 'b')
+plt.hist(equ.flatten(),256,[0,256], color = 'r')
+plt.xlim([0,256])
+plt.legend(('cdf','histogram'), loc = 'upper left')
+plt.title('Original gray image with equalization')
+plt.show()
+
+print(histogramError(img,hist1,hist1))

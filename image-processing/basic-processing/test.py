@@ -45,7 +45,7 @@ def histogramError(image,histogram,histogramEqualized):
         error = np.abs(histogram[x] - histogramEqualized[x])
     return error/((M*N)*2)
     
-img = cv2.imread('../images/prueba.jpg',0)
+img = cv2.imread('../images/clahe.png',0)
 img = cv2.resize(img,(600,500), interpolation = cv2.INTER_CUBIC)
 gaussian,salt = noisy(img)
 
@@ -111,4 +111,4 @@ plt.legend(('cdf','histogram'), loc = 'upper left')
 plt.title('Original gray image with equalization')
 plt.show()
 
-print(histogramError(img,hist1,hist1))
+print(histogramError(img,hist1,hist))

@@ -72,8 +72,16 @@ while command!="exit":
             print('Image loaded correctly')
             cv2.imshow('Original image', img)
     elif img is not None:
+        if command == "noise":
+            command = input("Choose the noise type:")
+            gaussian,salt = noisy(img)
+            if command == "gauss":
+                img = gaussian
+            elif command == "s&p":
+                img = salt
+            cv2.imshow('Original image with noise', img)
         #---- Colour model conversion -----------
-        if command == "colour":
+        elif command == "colour":
             command = input("Choose the colour model:")
             #------- Grayscale -------
             if command == "gray":
@@ -130,18 +138,27 @@ while command!="exit":
                 print('Error Sum operation:',meanSquareError(img,added))
                 cv2.imshow('Sum image', added)
                 cv2.imshow('Original image', img)
+                command = input("Overwrite original image?")
+                if command == "yes":
+                    img = added
             #------ Negative operation -----------
             elif command == "neg":
                 negative_image = 255 - img
                 print('Error Negative operation:',meanSquareError(img,negative_image))
                 cv2.imshow('Negative image', negative_image)
                 cv2.imshow('Original image', img)
+                command = input("Overwrite original image?")
+                if command == "yes":
+                    img = negative_image
             #------- Power-law transformation ------
             elif command == "pow":
                 power_law = adjust_gamma(img, 1.5)
                 print('Error Power-law operation:',meanSquareError(img,power_law))
                 cv2.imshow('Power-law image', power_law)
                 cv2.imshow('Original image', img)
+                command = input("Overwrite original image?")
+                if command == "yes":
+                    img = power_law
             #------- Threshold operations ---------
             elif command == "thresh":
                 gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -184,7 +201,7 @@ while command!="exit":
                 cdf = hist1.cumsum()
                 cdf_normalized = cdf * hist1.max()/ cdf.max()
                 plt.plot(cdf_normalized, color = 'b')
-                plt.hist1(equ.flatten(),256,[0,256], color = 'r')
+                plt.hist(equ.flatten(),256,[0,256], color = 'r')
                 plt.xlim([0,256])
                 plt.legend(('cdf','histogram'), loc = 'upper left')
                 plt.title('Original gray image with equalization')
@@ -202,13 +219,14 @@ while command!="exit":
                 cdf = hist1.cumsum()
                 cdf_normalized = cdf * hist1.max()/ cdf.max()
                 plt.plot(cdf_normalized, color = 'b')
-                plt.hist1(cl1.flatten(),256,[0,256], color = 'r')
+                plt.hist(cl1.flatten(),256,[0,256], color = 'r')
                 plt.xlim([0,256])
                 plt.legend(('cdf','histogram'), loc = 'upper left')
                 plt.title('Original gray image with CLAHE')
                 plt.show()
                 print('Error CLAHE histogram:',histogramError(gray_image,hist,hist1))
-                cv2.imshow('CLAHE image', clahe)
+                command = input("Overwrite original image?")
+                cv2.imshow('CLAHE image', cl1)
                 if command == "yes":
                     img = cl1
             cv2.imshow('Original gray image', gray_image)

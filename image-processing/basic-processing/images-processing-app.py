@@ -89,7 +89,11 @@ while command!="exit":
                 print('Error RGB to Gray-Scale:',meanSquareError(img,gray_image))
                 command = input("Back to RGB?:")
                 if command == "no":
-                    img = gray_image  
+                    img = gray_image 
+                else:
+                    rgb_image = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
+                    print('Error Gray to RGB:',meanSquareError(img,rgb_image))
+                    cv2.imshow('RGB image', rgb_image)
                 cv2.imshow('Gray image', gray_image)
             #------- CIE XYZ ---------
             elif command == "cie":
@@ -111,7 +115,7 @@ while command!="exit":
                 if command == "no":
                     img = hsv_image
                 else:
-                    rgb_image = cv2.cvtColor(cie_image, cv2.COLOR_HSV2BGR_FULL)
+                    rgb_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
                     print('Error HSV to RGB:',meanSquareError(img,rgb_image))
                     cv2.imshow('RGB image', rgb_image)
                 cv2.imshow('HSV image', hsv_image)
@@ -123,7 +127,7 @@ while command!="exit":
                 if command == "no":
                     img = hls_image
                 else:
-                    rgb_image = cv2.cvtColor(cie_image, cv2.COLOR_HLS2BGR_FULL)
+                    rgb_image = cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
                     print('Error HLS to RGB:',meanSquareError(img,rgb_image))
                     cv2.imshow('RGB image', rgb_image)
                 cv2.imshow('HLS image', hls_image)

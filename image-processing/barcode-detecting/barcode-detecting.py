@@ -1,189 +1,244 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Fri Feb 24 12:59:12 2017
 
-import numpy as np
+@author: JM
+"""
 import cv2
-
-
-def align_boundary(img, cursor, begin, end):
-    if (img[cursor[1]][cursor[0]] == end):
-        while (img[cursor[1]][cursor[0]] == end):
-            cursor[0] += 1
-    else:
-        while (img[cursor[1]][cursor[0]-1] == begin):
-            cursor[0] -= 1;
-      
-def read_digit(img, cursor, unit_width, Lcode, Gcode,Rcode, position, SPACE, BAR):
-  # Read the 7 consecutive bits.
-  pattern = [0, 0, 0, 0, 0, 0, 0]
-  for i in range(len(pattern)):
-    for j in range(unit_width):
-      if (img[cursor[1]][cursor[0]] == BAR):
-        pattern[i] += 1
-      cursor[0] += 1
-
-    if (pattern[i] == 1 and img[cursor[1]][cursor[0]] == BAR 
-        or pattern[i] == unit_width-1 and img[cursor[1]][cursor[0]] == SPACE):
-      cursor[0] -= 1
- 
-  # Convert to binary, consider that a bit is set if the number of
-  # bars encountered is greater than a threshold.
-  threshold = unit_width / 2
-  v = ""
-  for i in range(len(pattern)):
-    if pattern[i] >= threshold:
-        v += str(1)
-    else:
-        v += str(0)
-  
-  encoding=""
-  # Lookup digit value.
-  if (position == "LEFT"):
-    digit = Lcode.get(v)
-    encoding = "L"
-    if digit is None:
-       digit = Gcode.get(v)
-       encoding = "G"
-    align_boundary(img, cursor, SPACE, BAR)
-  else:
-    digit = Rcode.get(v)
-    align_boundary(img, cursor, BAR, SPACE) 
-  print("El codigo vale", v, "Digito", digit)
-  return digit,encoding
-  
-def skip_quiet_zone(img, cursor, SPACE):
-  while (img[cursor[1]][cursor[0]] == SPACE):
-      cursor[0]+=1
-  
-def read_lguard(img, cursor, BAR, SPACE):
-  widths = [ 0, 0, 0 ]
-  pattern = [ BAR, SPACE, BAR ]
-  for i in range(len(widths)):
-    while (img[cursor[1]][cursor[0]] == pattern[i]):
-      cursor[0]+=1
-      widths[i]+=1
-  return widths[0];
-
-def skip_mguard(img, cursor, BAR, SPACE):
-  pattern = [ SPACE, BAR, SPACE, BAR, SPACE ]
-  for i in range(len(pattern)):
-    while (img[cursor[1]][cursor[0]] == pattern[i]):
-      cursor[0]+=1
-
-def read_barcode(filename):
-  #Definimos todas las variables necesarias 
-  img = cv2.imread('../images/' + filename, 0)
-  img = cv2.bitwise_not(img)
-  _,img = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
-  cv2.imshow("original",img)
-  #img = cv2.threshold(img, 128,255, cv2.THRESH_BINARY)
-  
-  #Definimos una lista como el cursor con los ejes [X,Y]
-  cursor = [0,int(len(img[0]) / 2)]
-
-  #Se definen las dos regiones que se encuentran dentro del codigo de barras
-  Lcode = {"0001101":0,"0011001":1,"0010011":2,"0111101":3,"0100011":4,
-             "0110001":5,"0101111":6,"0111011":7,"0110111":8,"0001011":9}
-  
-  Gcode = {"0100111":0,"0110011":1,"0011011":2,"0100001":3,"0011101":4,
+import numpy as np
+class barcode:
+    def __init__(self,filename):
+        #Imagen con el barcode recortado
+        self.img = self.__barcodeProcessing(filename)
+        #Definimos tres cursores como una lista con los ejes [X,Y]
+        self.cursorS = [0,int(len(self.img) / 4)]
+        self.cursorM = [0,int(len(self.img) / 2)]
+        self.cursorI = [0,int(3*len(self.img) / 4)]
+        #Se definen las tres regiones que se encuentran dentro del codigo de barras
+        """
+        L y G son diccionarios que se utilizan para el codigo de barras de la parte izquierda,
+        en función de como se encuentren distribuidos estos en el codigo, el digito de seguridad
+        viene definido a traves del tipo de codificacion.
+        """
+        self.Lcode = {"0001101":0,"0011001":1,"0010011":2,"0111101":3,"0100011":4,
+                     "0110001":5,"0101111":6,"0111011":7,"0110111":8,"0001011":9}
+          
+        self.Gcode = {"0100111":0,"0110011":1,"0011011":2,"0100001":3,"0011101":4,
              "0111001":5,"0000101":6,"0010001":7,"0001001":8,"0010111":9}          
              
-  Rcode = {"1110010":0,"1100110":1,"1101100":2,"1000010":3,"1011100":4,
+        self.Rcode = {"1110010":0,"1100110":1,"1101100":2,"1000010":3,"1011100":4,
              "1001110":5,"1010000":6,"1000100":7,"1001000":8,"1110100":9}
              
-  typeEncoding = {"LLLLLL":0,"LLGLGG":1,"LLGGLG":2,"LLGGGL":3,"LGLLGG":4,
+        self.typeEncoding = {"LLLLLL":0,"LLGLGG":1,"LLGGLG":2,"LLGGGL":3,"LGLLGG":4,
              "LGGLLG":5,"LGGGLL":6,"LGLGLG":7,"LGLGGL":8,"LGGLGL":9}
-  #Definimos los espacios en blanco y las barras negras
-  SPACE = 0
-  BAR = 255
+        #Definimos los espacios en negro y las barras de blanco
+        self.SPACE = 0
+        self.BAR = 255
+    #Metodo para el procesamiento del barcode para su posterior lectura de barras
+    def __barcodeProcessing(self,filename):
+        img = cv2.imread('../images/' + filename, 0)
+        img = cv2.bitwise_not(img)
+        _,img = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
+        #kernel = np.ones((1,1),np.uint8) / 9
+        #img = cv2.erode(img,kernel,iterations = 1)
+        #ret, img = cv2.threshold(img,128,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        #kernel = np.ones((3,3),np.uint8)
+        #img = cv2.dilate(img,kernel,iterations = 1)
+        
+        
+        return img
+    #Metodo para mostrar el barcode por pantalla
+    def show(self):
+        self.img[int(self.cursorS[1])]= 255
+        self.img[self.cursorM[1]] = 255
+        self.img[self.cursorI[1]] = 255
+        cv2.imshow("imagen", self.img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
-  ## --------- Aplicado por Luis --------
-  #cv::bitwise_not(img, img);
-  #cv::threshold(img, img, 128, 255, cv::THRESH_BINARY);
-  ## ------------------------------
-  #Nos saltamos la primera zona de seguridad
-  skip_quiet_zone(img,cursor, SPACE)
-  #Calibramos el valor para que se coloque en la primera barra del codigo izquierdo
-  unit_width = read_lguard(img, cursor, BAR, SPACE)
-  #Almacenamos los digitos asociados al valor del codigo izquierdo
-  #std::vector<int> digits;
-  digits = ""
-  encoding = ""
-  for i in range(6):
-    d,e = read_digit(img, cursor, unit_width, Lcode, Gcode, Rcode, "LEFT", SPACE, BAR)   
-    digits += str(d)
-    encoding += e
+    """
+    Alinea el cursor para que se situe en el primer bit de la zona izquierda o de la derecha,
+    esto viene definido de la siguiente forma: 
+        zona izquierda => Empieza siempre con bit en blanco y acaba en bit negro
+        zona derecha => Empieza siempre con bit en negro y acaba en bit blanco
+    """
+    def __align_boundary(self,cursor, begin, end):
+        if (self.img[cursor[1]][cursor[0]] == end):
+            while (self.img[cursor[1]][cursor[0]] == end):
+                cursor[0] += 1
+        else:
+            while (self.img[cursor[1]][cursor[0]-1] == begin):
+                cursor[0] -= 1
+
+    """
+    Metodo que lee los 7 bits de cada digito
+    Devuelve el digito asociado y el tipo de codificacion que tiene
+    """
+    def __read_digit(self, cursor, unit_width, position):
+      pattern = [0, 0, 0, 0, 0, 0, 0] #Define los 7 bits del digito
+      #Calcula el patron comprobando que se encuentra dentro de la anchura minima de las barras
+      for i in range(len(pattern)):
+        for j in range(unit_width):
+          if (self.img[cursor[1]][cursor[0]] == self.BAR):
+            pattern[i] += 1
+          cursor[0] += 1
+        #Permite que si estamos dentro de una barra y uno de esos pixeles tiene un valor diferente al resto
+        #coloca el cursor un pixel atras ya que ese seria otra barra diferente.
+        if (pattern[i] == 1 and self.img[cursor[1]][cursor[0]] == self.BAR 
+            or pattern[i] == unit_width-1 and self.img[cursor[1]][cursor[0]] == self.SPACE):
+          cursor[0] -= 1
+     
+
+      #Fija un umbral a partir del que consideramos que la lectura de pixeles hecha se corresponde con una barra negra
+      threshold = unit_width / 2
+      v = ""
+      for i in range(len(pattern)):
+        if pattern[i] >= threshold:
+            v += str(1)
+        else:
+            v += str(0)
+      
+      encoding=""
+      # En funcion de la zona en la que se encuentra, traduce los bits.
+      if (position == "LEFT"):
+        digit = self.Lcode.get(v)
+        encoding = "L"
+        if digit is None:
+           digit = self.Gcode.get(v)
+           encoding = "G"
+        self.__align_boundary(cursor, self.SPACE, self.BAR)
+      else:
+        digit = self.Rcode.get(v)
+        self.__align_boundary(cursor, self.BAR, self.SPACE) 
+      #print("El codigo vale", v, "Digito", digit, "Pattern", pattern)
+
+      return digit,encoding
   
-  #Saltamos las barras de seguridad del medio
-  skip_mguard(img, cursor, BAR, SPACE)
+    #Coloca el cursor en la primera zona de control
+    def __skip_quiet_zone(self,cursor):
+        while (self.img[cursor[1]][cursor[0]] == self.SPACE):
+            cursor[0]+=1
+  
+    #Coloca el cursor tras la zona de control y calcula el tamaño minimo de las barras 
+    def __read_lguard(self, cursor):
+        widths = [ 0, 0, 0 ]
+        pattern = [ self.BAR, self.SPACE, self.BAR ]
+        for i in range(len(widths)):
+            while (self.img[cursor[1]][cursor[0]] == pattern[i]):
+                cursor[0]+=1
+                widths[i]+=1
+        return widths[0];
+    
+    #Salta los valores centrales
+    def __skip_mguard(self, cursor):
+        pattern = [ self.SPACE, self.BAR, self.SPACE, self.BAR, self.SPACE ]
+        for i in range(len(pattern)):
+            while (self.img[cursor[1]][cursor[0]] == pattern[i]):
+                cursor[0]+=1
+
+
+    def read_barcode(self):
+        stopS,stopM,stopI = False,False,False
+        #Nos saltamos la primera zona de seguridad
+        self.__skip_quiet_zone(self.cursorS)
+        self.__skip_quiet_zone(self.cursorM)
+        self.__skip_quiet_zone(self.cursorI)
+        #Calibramos el valor para que se coloque en la primera barra del codigo izquierdo y obtenemos la anchura de las barras
+        unit_widthS = self.__read_lguard(self.cursorS)
+        unit_widthM = self.__read_lguard(self.cursorM)
+        unit_widthI = self.__read_lguard(self.cursorI)
  
-  #Almacenamos los digitos asociados al valor del codigo derecho
-  for i in range(6):
-    d,_ = read_digit(img, cursor, unit_width, Lcode, Gcode, Rcode, "RIGHT", SPACE, BAR)
-    digits += str(d)
-
-  firstDigit = typeEncoding.get(encoding)
-  print(str(firstDigit)+digits)
-
-#imagen = 'barcodes/20170223_151821.jpg'
-imagen = 'barcode5.jpg'
-#imagen = 'barcode.png' ##Imagen wena pa k funke
-read_barcode(imagen)
-
-"""
-# load the image and convert it to grayscale
-image = cv2.imread('../images/' + imagen)
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        digits = ""
+        encoding = ""
+        """
+        print("Valor eje X", self.cursor[0])
+        for i in range(len(self.img)):        
+            self.img[i][self.cursor[0]] = 255
+        """
+        #Se calculan los digitos y la codificacion de la parte izquierda
+        for i in range(6):
+            try:
+                if stopS == False:
+                    d1,e1 = self.__read_digit(self.cursorS, unit_widthS, "LEFT")
+                if stopM == False:
+                   d2,e2 = self.__read_digit(self.cursorM, unit_widthM, "LEFT")
+                if stopI == False:
+                   d3,e3 = self.__read_digit(self.cursorI, unit_widthI, "LEFT")
+            except IndexError:
+                if self.cursorS[0] >= len(self.img[0])-1:
+                    stopS = True
+                if self.cursorM[0] >= len(self.img[0])-1:
+                    stopM = True
+                if self.cursorI[0] >= len(self.img[0])-1:
+                    stopI = True         
+                      
+            if (d1 == d2 or d1 == d3) and d1 is not None:
+                d = d1
+                e = e1
+            elif (d2 == d1 or d2 == d3) and d2 is not None:
+                d = d2
+                e = e2
+            elif (d3 == d1 or d3 == d2) and d3 is not None:
+                d = d3
+                e = e3
+            elif d1 is not None:
+                d = d1
+                e = e1
+            elif d2 is not None:
+                d = d2
+                e = e2
+            elif d3 is not None:
+                d = d3
+                e = e3
+            
+            digits += str(d)
+            encoding += e
+        """
+        print("Valor eje X", self.cursor[0])
+        for i in range(len(self.img)):        
+            self.img[i][self.cursor[0]] = 255
+        """
+        #Saltamos las barras de seguridad del medio
+        self.__skip_mguard(self.cursorS)
+        self.__skip_mguard(self.cursorM)
+        self.__skip_mguard(self.cursorI)
  
-# compute the Scharr gradient magnitude representation of the images
-# in both the x and y direction
-gradX = cv2.Sobel(gray, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
-gradY = cv2.Sobel(gray, ddepth = cv2.CV_32F, dx = 0, dy = 1, ksize = -1)
+        #Almacenamos los digitos asociados al valor del codigo derecho
+        for i in range(6):
+            try:
+                if stopS == False:
+                    d1,_ = self.__read_digit(self.cursorS, unit_widthS, "RIGHT")
+                if stopM == False:
+                   d2,_ = self.__read_digit(self.cursorM, unit_widthM, "RIGHT")
+                if stopI == False:
+                   d3,_ = self.__read_digit(self.cursorI, unit_widthI, "RIGHT")
+            except IndexError:
+                if self.cursorS[0] >= len(self.img[0])-1:
+                    stopS = True
+                if self.cursorM[0] >= len(self.img[0])-1:
+                    stopM = True
+                if self.cursorI[0] >= len(self.img[0])-1:
+                    stopI = True 
+
+            if (d1 == d2 or d1 == d3) and d1 is not None:
+                d = d1
+            elif (d2 == d1 or d2 == d3) and d2 is not None:
+                d = d2
+            elif (d3 == d1 or d3 == d2):
+                d = d3
+            elif d1 is not None:
+                d = d1
+            elif d2 is not None:
+                d = d2
+            elif d3 is not None:
+                d = d3
+            digits += str(d)
+        firstDigit = self.typeEncoding.get(encoding)
+        print(str(firstDigit)+digits)
+
  
-# subtract the y-gradient from the x-gradient
-#Se le aplica una resta para resaltar el resultado del eje X(Codigo de barras) frente al eje Y(numeros del codigo)
-gradient = cv2.subtract(gradX, gradY)
-gradient = cv2.convertScaleAbs(gradient)
-
-# blur and threshold the image
-blurred = cv2.blur(gradient, (5, 5))
-bilateralFilter = cv2.bilateralFilter(gradient,9,75,75)
-(_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
-(_, thresh1) = cv2.threshold(bilateralFilter, 225, 255, cv2.THRESH_BINARY)
-
-# construct a closing kernel and apply it to the thresholded image
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
-closed = cv2.morphologyEx(thresh1, cv2.MORPH_CLOSE, kernel)
-
-# perform a series of erosions and dilations
-closed = cv2.erode(closed, None, iterations = 4)
-closed = cv2.dilate(closed, None, iterations = 4)
-
-# find the contours in the thresholded image, then sort the contours
-# by their area, keeping only the largest one
-(_,cnts ,_) = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL,
-    cv2.CHAIN_APPROX_SIMPLE)
-c = sorted(cnts, key = cv2.contourArea, reverse = True)[0]
- 
-# compute the rotated bounding box of the largest contour
-rect = cv2.minAreaRect(c)
-box = np.int0(cv2.boxPoints(rect))
- 
-# draw a bounding box arounded the detected barcode and display the
-# image
-cv2.drawContours(image, [box], -1, (0, 255, 0), 3)
-cv2.imshow("Image", image)
-cv2.waitKey(0)
-
-
-cv2.imshow('X',gradX)
-cv2.imshow('Y',gradY)
-cv2.imshow('',closed)
-cv2.imshow('Blurred',blurred)
-cv2.imshow('Threshold',thresh)
-cv2.imshow('Bilateral',bilateralFilter)
-cv2.imshow('Threshold 1',thresh1)
-"""
-
-cv2.waitKey(0)
-
-cv2.destroyAllWindows()
+imagen = 'barcode2.jpg'  
+#imagen = 'barcode.png'     
+barcode = barcode(imagen)
+barcode.read_barcode()
+barcode.show()

@@ -46,6 +46,7 @@ def imageProcessing(original,image):
  
     # compute the rotated bounding box of the largest contour
     rect = cv2.minAreaRect(c)
+    print(rect)
     box = np.int0(cv2.boxPoints(rect))
     # draw a bounding box arounded the detected barcode and display the
     # image
@@ -53,7 +54,7 @@ def imageProcessing(original,image):
     cv2.imshow("Image", original)
     cv2.waitKey(0)
     
-    return box
+    return box,rect
     
 """
 ### -------------- Prueba 1: Barcode perfecto --------------------------------------------------
@@ -76,6 +77,7 @@ barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
 """
+"""
 ###------------- Prueba 2: Barcode en objeto ---------------------------------------------
 #Leemos el fichero
 filename = "barcode-3.jpg"
@@ -90,6 +92,7 @@ thresh = cv2.Canny(gray,50,100)
 
 #Obtenemos el contorno del barcode y recortamos el barcode a partir del contorno
 box = imageProcessing(image.copy(),thresh)
+
 y1,y2,x1,x2 = crop(box)
 cropped = image[x1:x2,y1:y2]
 
@@ -97,10 +100,38 @@ cropped = image[x1:x2,y1:y2]
 #Aplicamos la decodificacion del barcode
 barcode = barcode(cropped)
 barcode.read_barcode()
-#barcode.show()
+barcode.show()
 ###-------------------------------------------------------------------------------------
+"""
+#Leemos el fichero
+filename = "girada.jpg"
+image = readImage(filename)
 
+#Rotamos la imagen 180º para obtener el barcode
 
+#Convertimos la imagen a gris y le aplicamos la deteccion de vertices de Canny
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+thresh = cv2.Canny(gray,100,200)
 
+#Obtenemos el contorno del barcode y recortamos el barcode a partir del contorno
+box,rect = imageProcessing(image.copy(),thresh)
+y1,y2,x1,x2 = crop(box)
+cropped = image[x1:x2,y1:y2]
+rot_mat = cv2.getRotationMatrix2D((cropped.shape[0]/2, cropped.shape[1]/2),rect[2],1.0)
+cropped = cv2.warpAffine(cropped, rot_mat, (cropped.shape[0]+25, cropped.shape[1]+25),flags=cv2.INTER_LINEAR)
+
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+#thresh = cv2.Canny(gray,70,180)
+thresh = cv2.Canny(gray,70,183)
+box,rect = imageProcessing(cropped.copy(),thresh)
+y1,y2,x1,x2 = crop(box)
+cropped = cropped[x1:x2,y1+15:y2]
+#cv2.imshow("cropped", cropped)
+#cv2.waitKey(0)
+
+#Aplicamos la decodificacion del barcode
+barcode = barcode(cropped)
+barcode.read_barcode()
+barcode.show()
 
 cv2.destroyAllWindows()

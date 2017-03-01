@@ -6,6 +6,7 @@ Created on Fri Feb 24 12:59:12 2017
 """
 import cv2
 import math
+import numpy as np
 class barcode:
     def __init__(self,image):
         #Imagen con el barcode recortado
@@ -39,16 +40,21 @@ class barcode:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray,(3,3),7)
         (_, thresh) = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(1,30))
-        #erosion = cv2.erode(thresh,kernel,iterations = 1)
-        #dilation = cv2.dilate(erosion,kernel,iterations = 1)
-
         img = cv2.bitwise_not(thresh)
-        #_,img = cv2.threshold(img,128,255,cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(1,30))
+        erosion = cv2.erode(thresh,kernel,iterations = 1)
+        dilation = cv2.dilate(erosion,kernel,iterations = 1)
+
+        #img = cv2.bitwise_not(gray)
+        #N = np.ones(gray.shape, dtype= "uint8") * 100
+
+        #img = cv2.subtract(gray,N)
+        #_,img = cv2.threshold(img,80,255,cv2.THRESH_TOZERO_INV)
+        #_,img = cv2.threshold(img,70,255,cv2.THRESH_BINARY)
         
-        #cv2.imshow("prueba", img)
-        #cv2.waitKey(0)
+        
+        cv2.imshow("prueba", dilation)
+        cv2.waitKey(0)
         """
         closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
         cv2.imshow("closed", closed)
@@ -302,23 +308,25 @@ class barcode:
  
         #Almacenamos los digitos asociados al valor del codigo derecho
         for i in range(6):
-            d1,d2,d3 = "","",""
+            d1,d2,d3 = 0,0,0
+            dist1,dist2,dist3 = 100,100,100
             if stopS == False:
                 try:
-                    d1,e1,_ = self.__read_digit(self.cursorS, unit_widthS, "RIGHT") 
-                    print("d1",d1)
+                    d1,_,dist1 = self.__read_digit(self.cursorS, unit_widthS, "RIGHT") 
+                    print("d1",d1,"dist1", dist1)
                 except IndexError:
                     stopS = True
+                    print("Peta d1")
             if stopM == False:
                 try:
-                    d2,e2,_ = self.__read_digit(self.cursorM, unit_widthM, "RIGHT") 
-                    print("d2",d2)
+                    d2,_,dist2 = self.__read_digit(self.cursorM, unit_widthM, "RIGHT") 
+                    print("d2",d2,"dist2", dist2)
                 except IndexError:
                     stopM = True
             if stopI == False:
                 try:
-                    d3,e3,_ = self.__read_digit(self.cursorI, unit_widthI, "RIGHT")
-                    print("d3",d3)
+                    d3,_,dist3 = self.__read_digit(self.cursorI, unit_widthI, "RIGHT")
+                    print("d3",d3,"dist3", dist3)
                 except IndexError:
                     stopI = True
 

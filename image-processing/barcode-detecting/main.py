@@ -195,12 +195,12 @@ barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
 """
+
 ### -------------- Prueba 6: Barcode con poca iluminacion --------------------------------------------------
 #Leemos el fichero
 filename = "barcode-oscuro.jpg"
 image = readImage(filename)
-#M = np.ones(image.shape, dtype= "uint8") * 100
-#image = cv2.add(image,M)
+
 #Convertimos la imagen a gris y le aplicamos la deteccion de vertices de Canny
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 thresh = cv2.Canny(gray,100,200)
@@ -211,12 +211,14 @@ y1,y2,x1,x2 = crop(box)
 cropped = image[x1:x2,y1:y2]
 cropped = cv2.resize(cropped, (600, 400)) 
 
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1 ,100))
-cropped = cv2.morphologyEx(cropped, cv2.MORPH_CLOSE, kernel)
-cropped = cv2.morphologyEx(cropped, cv2.MORPH_OPEN, kernel)
+#Se le aplican operaciones morfologicas para quitar el ruido blanco que se genera al tener poca iluminacion
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 10))
+cropped = cv2.erode(cropped, kernel, iterations = 2)
+cropped = cv2.dilate(cropped, kernel, iterations = 6)
 
-#gray = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
-#TERMINAR DE HACER PRUEBAS
+#Se le aplica un threshold adaptativo que mejora la calidad en ambientes con poca iluminacion
+cropped = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+cropped = cv2.adaptiveThreshold(cropped,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
 #Aplicamos la decodificacion del barcode
 barcode = barcode(cropped)
 barcode.read_barcode()

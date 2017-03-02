@@ -36,8 +36,9 @@ class barcode:
         self.BAR = 255
     #Metodo para el procesamiento del barcode para su posterior lectura de barras
     def __barcodeProcessing(self,image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
+        if image[0].all() != image[1].all():
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = image      
         blur = cv2.GaussianBlur(gray,(3,3),7)
         (_, thresh) = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         

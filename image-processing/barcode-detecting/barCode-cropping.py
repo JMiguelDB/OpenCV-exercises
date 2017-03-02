@@ -32,11 +32,7 @@ def recorta(box):
 def barCode(name):
     
     image = cv2.imread('../images/'+ name)
-    #print (name,len(image))
-    """
-    if(len(image)>683):
-        image = image = cv2.resize(image, (683, 384)) 
-    """        
+     
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
      # Sobel se usa para buscar los bordes de la imagen
     gradX = cv2.Sobel(gray, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)

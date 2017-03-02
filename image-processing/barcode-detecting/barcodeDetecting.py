@@ -6,7 +6,6 @@ Created on Fri Feb 24 12:59:12 2017
 """
 import cv2
 import math
-import numpy as np
 class barcode:
     def __init__(self,image):
         #Imagen con el barcode recortado
@@ -41,31 +40,6 @@ class barcode:
         blur = cv2.GaussianBlur(gray,(3,3),7)
         (_, thresh) = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         img = cv2.bitwise_not(thresh)
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(1,30))
-        erosion = cv2.erode(thresh,kernel,iterations = 1)
-        dilation = cv2.dilate(erosion,kernel,iterations = 1)
-
-        #img = cv2.bitwise_not(gray)
-        #N = np.ones(gray.shape, dtype= "uint8") * 100
-
-        #img = cv2.subtract(gray,N)
-        #_,img = cv2.threshold(img,80,255,cv2.THRESH_TOZERO_INV)
-        #_,img = cv2.threshold(img,70,255,cv2.THRESH_BINARY)
-        
-        
-        cv2.imshow("prueba", dilation)
-        cv2.waitKey(0)
-        """
-        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
-        cv2.imshow("closed", closed)
-        cv2.waitKey(0)
-        """
-        #kernel = np.ones((1,1),np.uint8) / 9
-        #img = cv2.erode(img,kernel,iterations = 1)
-        #ret, img = cv2.threshold(img,128,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        #kernel = np.ones((3,3),np.uint8)
-        #img = cv2.dilate(img,kernel,iterations = 1)
-        
         
         return img
     #Metodo para mostrar el barcode por pantalla
@@ -199,7 +173,7 @@ class barcode:
             while (self.img[cursor[1]][cursor[0]] == pattern[i]):
                 cursor[0]+=1
                 widths[i]+=1
-        return widths[0];
+        return widths[0]
     
     #Salta los valores centrales
     def __skip_mguard(self, cursor):

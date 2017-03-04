@@ -31,8 +31,12 @@ def recorta(box):
 
 def barCode(name):
     
-    image = cv2.imread('../images/'+ name)
-     
+    image = cv2.imread('images/'+ name)
+    #print (name,len(image))
+    """
+    if(len(image)>683):
+        image = image = cv2.resize(image, (683, 384)) 
+    """        
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
      # Sobel se usa para buscar los bordes de la imagen
     gradX = cv2.Sobel(gray, ddepth = cv2.CV_32F, dx = 1, dy = 0, ksize = -1)
@@ -45,16 +49,16 @@ def barCode(name):
     # blur and threshold the image
     blurred = cv2.bilateralFilter(gradient,9,75,75)
     (_, thresh) = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
-
+   
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
+   
     closed = cv2.erode(closed, None, iterations = 4)
     closed = cv2.dilate(closed, None, iterations = 4)
-
-
-    cv2.imshow("",closed)
+    cv2.imwrite("manual1.jpg",closed)
+	
+    
     #cv2.waitKey()
     # find the contours in the thresholded image, then sort the contours
     # by their area, keeping only the largest one
@@ -86,26 +90,70 @@ def barCode(name):
     cv2.destroyAllWindows()
     #recorre(cropped)
 
-"""
-def decodifica():
-
-    valores = {"00000000":1}
-    #print(valores)
 
 
-def recorre(image):
-    a = []
-    for i in range(len (image)):
-        a.append( (image[45][i]))
 
-    #print (a)
+def canny(name):
+	image = cv2.imread('images/'+ name)
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)	
+	thresh = cv2.Canny(gray,50,100)
+	
 
-for i in range(len(nom)):
-    print( i)    
-    barCode(nom[i])
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
+	closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+	
+	closed = cv2.erode(closed, None, iterations = 4)
+	closed = cv2.dilate(closed, None, iterations = 4)
+	cv2.imwrite("canny1.jpg",closed)
 
-"""
-barCode("barcode-1.jpg")
+
+def hough(name):
+	print(1	)	
+	img = cv2.imread('images/'+name)
+	gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+	edges = cv2.Canny(gray,75,100,apertureSize = 3)
+
+	lines = cv2.HoughLines(edges,1,np.pi/180,400)
+	for rho,theta in lines[0]:
+	    a = np.cos(theta)
+	    b = np.sin(theta)
+	    x0 = a*rho
+	    y0 = b*rho
+	    x1 = int(x0 + 1000*(-b))
+	    y1 = int(y0 + 1000*(a))
+	    x2 = int(x0 - 1000*(-b))
+	    y2 = int(y0 - 1000*(a))
+
+	    cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
+
+	cv2.imwrite('houghlines3.jpg',img)
+
+def fourier(name):
+	img = cv2.imread('images/'+name)
+	Mat1f img = img.reshape(1);
+	dft = cv2.dft((img),flags = cv2.DFT_COMPLEX_OUTPUT)
+	dft_shift = np.fft.fftshift(dft)
+	cv2.imwrite('dft_shift.jpg',img)
+	rows, cols = img.shape
+	crow,ccol = rows/2 , cols/2
+	
+	# create a mask first, center square is 1, remaining all zeros
+	mask = np.zeros((rows,cols,2),np.uint8)
+	mask[crow-30:crow+30, ccol-30:ccol+30] = 1
+	
+	# apply mask and inverse DFT
+	fshift = dft_shift*mask
+	f_ishift = np.fft.ifftshift(fshift)
+	img_back = cv2.idft(f_ishift)
+	img_back = cv2.magnitude(img_back[:,:,0],img_back[:,:,1])
+	cv2.imwrite('img_back.jpg',img)
 
 
+fourier("barcode-3.jpg")
+
+#hough("barcode-3.jpg")
+
+#barCode("barcode-3.jpg")
+
+#canny("barcode-3.jpg")
 

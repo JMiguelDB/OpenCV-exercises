@@ -72,7 +72,8 @@ y1,y2,x1,x2 = crop(box)
 cropped = image[x1:x2,y1:y2]
 
 #Aplicamos la decodificacion del barcode
-barcode = barcode(cropped)
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  
+barcode = barcode(gray)
 barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
@@ -97,7 +98,8 @@ y1,y2,x1,x2 = crop(box)
 cropped = image[x1:x2,y1:y2]
 
 #Aplicamos la decodificacion del barcode
-barcode = barcode(cropped)
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  
+barcode = barcode(gray)
 barcode.read_barcode()
 barcode.show()
 ###-------------------------------------------------------------------------------------
@@ -129,7 +131,8 @@ y1,y2,x1,x2 = crop(box)
 cropped = cropped[x1:x2,y1+15:y2]
 
 #Aplicamos la decodificacion del barcode
-barcode = barcode(cropped)
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  
+barcode = barcode(gray)
 barcode.read_barcode()
 barcode.show()
 """
@@ -155,7 +158,8 @@ cropped = cv2.morphologyEx(cropped, cv2.MORPH_CLOSE, kernel)
 cropped = cv2.morphologyEx(cropped, cv2.MORPH_OPEN, kernel)
 
 #Aplicamos la decodificacion del barcode
-barcode = barcode(cropped)
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  
+barcode = barcode(gray)
 barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
@@ -190,12 +194,13 @@ cropped = image[x1:x2,y1:y2]
 cropped = cv2.resize(cropped, (600, 400)) 
 
 #Aplicamos la decodificacion del barcode
-barcode = barcode(cropped)
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)  
+barcode = barcode(gray)
 barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
 """
-
+"""
 ### -------------- Prueba 6: Barcode con poca iluminacion --------------------------------------------------
 #Leemos el fichero
 filename = "barcode-oscuro.jpg"
@@ -224,6 +229,6 @@ barcode = barcode(cropped)
 barcode.read_barcode()
 barcode.show()
 ###------------------------------------------------------------------------------------------
-
+"""
 
 cv2.destroyAllWindows()
